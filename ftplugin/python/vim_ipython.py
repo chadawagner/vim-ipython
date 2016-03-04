@@ -93,7 +93,10 @@ def new_ipy(s=''):
         new_ipy()
 
     """
-    from IPython.kernel import KernelManager
+    try:
+        from jupyter_client.manager import KernelManager
+    except ImportError:
+        from IPython.kernel import KernelManager
     km = KernelManager()
     km.start_kernel()
     return km_from_string(km.connection_file)
@@ -107,21 +110,28 @@ def km_from_string(s=''):
         import IPython
     except ImportError:
         raise ImportError("Could not find IPython. " + _install_instructions)
-    from IPython.config.loader import KeyValueConfigLoader
     try:
-        from IPython.kernel import (
-            KernelManager,
-            find_connection_file,
-        )
+        from traitlets.config.loader import KeyValueConfigLoader
     except ImportError:
-        #  IPython < 1.0
-        from IPython.zmq.blockingkernelmanager import BlockingKernelManager as KernelManager
-        from IPython.zmq.kernelapp import kernel_aliases
+        from IPython.config.loader import KeyValueConfigLoader
+    try:
+        from jupyter_client.manager import KernelManager
+        from jupyter_client.connect import find_connection_file
+    except ImportError:
         try:
-            from IPython.lib.kernel import find_connection_file
+            from IPython.kernel import (
+                KernelManager,
+                find_connection_file,
+            )
         except ImportError:
-            # < 0.12, no find_connection_file
-            pass
+            #  IPython < 1.0
+            from IPython.zmq.blockingkernelmanager import BlockingKernelManager as KernelManager
+            from IPython.zmq.kernelapp import kernel_aliases
+            try:
+                from IPython.lib.kernel import find_connection_file
+            except ImportError:
+                # < 0.12, no find_connection_file
+                pass
 
     global km, kc, send
 
@@ -150,8 +160,13 @@ def km_from_string(s=''):
             echo(":IPython " + s + " failed", "Info")
             echo("^-- failed '" + s + "' not found", "Error")
             return
-        km = KernelManager(connection_file = fullpath)
-        km.load_connection_file()
+        if IPython.version_info[0] >= 4:
+            km = KernelManager()
+            km.connection_file = find_connection_file()
+            km.load_connection_file()
+        else:
+            km = KernelManager(connection_file = fullpath)
+            km.load_connection_file()
     else:
         if s == '':
             echo(":IPython 0.11 requires the full connection string")
