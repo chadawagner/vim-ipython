@@ -448,10 +448,7 @@ def update_subchannel_msgs(debug=False, force=False):
             s += c['ename'] + ":" + c['evalue']
 
         if s.find('\n') == -1:
-            # somewhat ugly unicode workaround from
-            # http://vim.1045645.n5.nabble.com/Limitations-of-vim-python-interface-with-respect-to-character-encodings-td1223881.html
-            if isinstance(s,unicode):
-                s=s.encode(vim_encoding)
+            s=s.encode(vim_encoding)
             b.append(s)
         else:
             try:
